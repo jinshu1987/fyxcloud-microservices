@@ -1,0 +1,12 @@
+{
+  "name": "@fyx/shared",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "./schema": "./schema.ts",
+    "./queue": "./queue.ts",
+    "./db": "./db.ts",
+    "./logger": "./logger.ts",
+    "./auth": "./auth.ts"
+  }
+}
