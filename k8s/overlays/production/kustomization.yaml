@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fyxcloud
+
+bases:
+  - ../../base
+
+patches:
+  - path: replicas.yaml
+  - path: resources.yaml
+
+images:
+  - name: fyxcloud/api-gateway
+    newTag: "1.0.0"
+  - name: fyxcloud/auth-service
+    newTag: "1.0.0"
+  - name: fyxcloud/scanner-service
+    newTag: "1.0.0"
+  - name: fyxcloud/policy-engine-service
+    newTag: "1.0.0"
+  - name: fyxcloud/notification-service
+    newTag: "1.0.0"
+  - name: fyxcloud/billing-service
+    newTag: "1.0.0"
+  - name: fyxcloud/report-service
+    newTag: "1.0.0"
+  - name: fyxcloud/frontend
+    newTag: "1.0.0"
