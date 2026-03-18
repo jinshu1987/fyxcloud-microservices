@@ -1,0 +1,199 @@
+version: "3.9"
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  networks:
+    - fyx-net
+  env_file: .env
+
+x-db-env: &db-env
+  DATABASE_URL: ${DATABASE_URL}
+  SESSION_SECRET: ${SESSION_SECRET}
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+
+services:
+  # ─── Infrastructure ───────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    <<: *service-defaults
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fyxcloud}
+      POSTGRES_USER: ${POSTGRES_USER:-fyxcloud}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fyxcloud}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Services ─────────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: services/api-gateway
+      dockerfile: Dockerfile
+    <<: *service-defaults
+    ports:
+      - "3000:3000"
+    environment:
+      <<: *db-env
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      SCANNER_SERVICE_URL: http://scanner-service:3002
+      POLICY_SERVICE_URL: http://policy-engine-service:3003
+      NOTIFICATION_SERVICE_URL: http://notification-service:3004
+      BILLING_SERVICE_URL: http://billing-service:3005
+      REPORT_SERVICE_URL: http://report-service:3006
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  auth-service:
+    build:
+      context: services/auth-service
+      dockerfile: Dockerfile
+    <<: *service-defaults
+    ports:
+      - "3001:3001"
+    environment:
+      <<: *db-env
+      PORT: 3001
+      APP_URL: ${APP_URL:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  scanner-service:
+    build:
+      context: services/scanner-service
+      dockerfile: Dockerfile
+    <<: *service-defaults
+    ports:
+      - "3002:3002"
+    environment:
+      <<: *db-env
+      PORT: 3002
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  policy-engine-service:
+    build:
+      context: services/policy-engine-service
+      dockerfile: Dockerfile
+    <<: *service-defaults
+    ports:
+      - "3003:3003"
+    environment:
+      <<: *db-env
+      PORT: 3003
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3003/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  notification-service:
+    build:
+      context: services/notification-service
+      dockerfile: Dockerfile
+    <<: *service-defaults
+    ports:
+      - "3004:3004"
+    environment:
+      <<: *db-env
+      PORT: 3004
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  billing-service:
+    build:
+      context: services/billing-service
+      dockerfile: Dockerfile
+    <<: *service-defaults
+    ports:
+      - "3005:3005"
+    environment:
+      <<: *db-env
+      PORT: 3005
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3005/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  report-service:
+    build:
+      context: services/report-service
+      dockerfile: Dockerfile
+    <<: *service-defaults
+    ports:
+      - "3006:3006"
+    environment:
+      <<: *db-env
+      PORT: 3006
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3006/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: .
+      dockerfile: services/frontend/Dockerfile
+    <<: *service-defaults
+    ports:
+      - "80:80"
+    environment:
+      VITE_API_URL: ${APP_URL:-http://localhost:3000}
+    depends_on:
+      - api-gateway
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  pgdata:
+
+networks:
+  fyx-net:
+    driver: bridge
