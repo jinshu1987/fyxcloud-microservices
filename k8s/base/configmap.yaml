@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fyxcloud-config
+  namespace: fyxcloud
+data:
+  NODE_ENV: "production"
+  AUTH_SERVICE_URL: "http://auth-service:3001"
+  SCANNER_SERVICE_URL: "http://scanner-service:3002"
+  POLICY_SERVICE_URL: "http://policy-engine-service:3003"
+  NOTIFICATION_SERVICE_URL: "http://notification-service:3004"
+  BILLING_SERVICE_URL: "http://billing-service:3005"
+  REPORT_SERVICE_URL: "http://report-service:3006"
