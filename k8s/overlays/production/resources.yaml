@@ -1,0 +1,12 @@
+- op: replace
+  path: /spec/template/spec/containers/0/resources
+  value:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  target:
+    kind: Deployment
+    name: api-gateway
